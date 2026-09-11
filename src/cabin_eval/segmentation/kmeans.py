@@ -22,7 +22,9 @@ class KMeansSegmenter:
 
     def find_optimal_k(self, X: np.ndarray) -> list[SegmentationMetrics]:
         """寻找最优K值 (不自动选择，只计算指标供人工决策)."""
-        candidate_k = self._cfg.get("candidate_k", list(range(2, 11)))
+        n_samples = X.shape[0]
+        max_k = min(n_samples, self._cfg.get("max_k", 10))
+        candidate_k = [k for k in self._cfg.get("candidate_k", list(range(2, 11))) if 2 <= k <= max_k]
         metrics = []
 
         for k in candidate_k:

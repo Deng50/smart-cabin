@@ -28,25 +28,20 @@ class ProfileAdapter:
         self, profile: UserProfile, base_weights: dict[str, float]
     ) -> list[WeightChangeLog]:
         """为用户画像生成差异化权重."""
-        tree_manager = IndicatorTreeManager(copy.deepcopy(self._base_tree))
+        adapted_tree = copy.deepcopy(self._base_tree)
+        tree_manager = IndicatorTreeManager(adapted_tree)
         leaves = tree_manager.get_leaves()
 
         change_logs: list[WeightChangeLog] = []
-        parent_weights: dict[str, float] = {}
 
         for leaf in leaves:
             indicator_id = leaf.indicator_id
             base_weight = base_weights.get(indicator_id, 0.0)
+
             need_tier = profile.need_tier.get(f"function_{indicator_id}", NeedTier.NORMAL)
 
             multiplier = self._classifier.get_multiplier(need_tier)
             final_local = base_weight * multiplier
-
-            parent_id = leaf.parent_id
-            if parent_id:
-                if parent_id not in parent_weights:
-                    parent_weights[parent_id] = 0.0
-                parent_weights[parent_id] += final_local
 
             is_required = leaf.category == IndicatorCategory.REQUIRED
             if self._classifier.should_remove(need_tier, is_required):
@@ -58,6 +53,10 @@ class ProfileAdapter:
                 reason = "high_need_multiplied"
             else:
                 reason = "base_weight"
+
+            node = adapted_tree.nodes.get(indicator_id)
+            if node:
+                node.local_weight = final_local
 
             change_logs.append(WeightChangeLog(
                 indicator_id=indicator_id,
@@ -72,7 +71,7 @@ class ProfileAdapter:
         tree_manager.calculate_global_weights()
 
         for log in change_logs:
-            node = self._base_tree.nodes.get(log.indicator_id)
+            node = adapted_tree.nodes.get(log.indicator_id)
             if node:
                 log.final_global_weight = node.global_weight
 

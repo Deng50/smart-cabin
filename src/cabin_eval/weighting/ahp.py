@@ -138,41 +138,39 @@ class AHPWeightCalculator:
         ahp_results: list[AhpResult],
         authority_df: pd.DataFrame | None = None,
     ) -> dict[str, float]:
-        """聚合专家权重."""
-        authority_map = {}
+        """聚合专家权重，使用权威度加权."""
+        authority_map: dict[str, float] = {}
         if authority_df is not None and "expert_id" in authority_df.columns:
             for _, row in authority_df.iterrows():
                 authority_map[str(row["expert_id"])] = float(row.get("authority_score", 1.0))
 
-        parent_weights: dict[str, dict[str, float]] = {}
-        parent_counts: dict[str, int] = {}
+        parent_weighted_sum: dict[str, dict[str, float]] = {}
+        parent_authority_sum: dict[str, float] = {}
 
         for result in ahp_results:
             if not result.is_consistent:
                 continue
 
             parent_id = result.parent_indicator_id
-            if parent_id not in parent_weights:
-                parent_weights[parent_id] = {}
-                parent_counts[parent_id] = 0
+            expert_authority = authority_map.get(result.expert_id, 1.0)
 
-            weight_sum = sum(parent_weights[parent_id].values())
-            if weight_sum == 0:
-                parent_weights[parent_id] = result.local_weights.copy()
-                parent_counts[parent_id] = 1
-            else:
-                for pid, w in result.local_weights.items():
-                    parent_weights[parent_id][pid] = (
-                        parent_weights[parent_id].get(pid, 0) + w
-                    )
-                parent_counts[parent_id] += 1
+            if parent_id not in parent_weighted_sum:
+                parent_weighted_sum[parent_id] = {}
+                parent_authority_sum[parent_id] = 0.0
+
+            for pid, w in result.local_weights.items():
+                weighted_w = w * expert_authority
+                parent_weighted_sum[parent_id][pid] = (
+                    parent_weighted_sum[parent_id].get(pid, 0.0) + weighted_w
+                )
+            parent_authority_sum[parent_id] += expert_authority
 
         final_weights = {}
-        for parent_id, weights in parent_weights.items():
-            count = parent_counts[parent_id]
-            if count > 0:
+        for parent_id, weights in parent_weighted_sum.items():
+            total_auth = parent_authority_sum.get(parent_id, 1.0)
+            if total_auth > 0:
                 for pid in weights:
-                    weights[pid] /= count
-                final_weights.update(weights)
+                    weights[pid] /= total_auth
+            final_weights.update(weights)
 
         return final_weights

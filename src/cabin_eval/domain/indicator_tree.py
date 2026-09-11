@@ -44,33 +44,57 @@ class IndicatorTreeBuilder:
         return self._tree
 
     def _build_hierarchy(self) -> None:
-        """构建指标层级关系."""
+        """构建指标层级关系，自动创建缺失的父节点."""
         for node_id, node in self._tree.nodes.items():
-            path_key = f"{node.level_1}/{node.level_2}/{node.level_3}/{node.level_4}"
             if node.level_4:
-                parent_key = f"{node.level_1}/{node.level_2}/{node.level_3}/"
-                self._add_child_relation(parent_key, node_id)
+                parent_id = self._ensure_parent_node(node.level_1, node.level_2, node.level_3, "")
+                self._add_child_relation(parent_id, node_id)
             elif node.level_3:
-                parent_key = f"{node.level_1}/{node.level_2}/"
-                self._add_child_relation(parent_key, node_id)
+                parent_id = self._ensure_parent_node(node.level_1, node.level_2, node.level_3, "")
+                self._add_child_relation(parent_id, node_id)
             elif node.level_2:
-                parent_key = node.level_1
-                self._add_child_relation(parent_key, node_id)
+                parent_id = self._ensure_parent_node(node.level_1, node.level_2, "", "")
+                self._add_child_relation(parent_id, node_id)
+            elif node.level_1:
+                self._add_child_relation(node.level_1, node_id)
 
         self._tree.root_ids = [nid for nid, n in self._tree.nodes.items() if not n.parent_id]
 
-    def _add_child_relation(self, parent_key: str, child_id: str) -> None:
-        """添加父子关系."""
-        parent_node = None
-        for nid, node in self._tree.nodes.items():
-            path = f"{node.level_1}/{node.level_2}/{node.level_3}/{node.level_4}".rstrip("/")
-            if path == parent_key or (node.level_1 == parent_key and not node.level_2):
-                parent_node = node
-                break
+    def _ensure_parent_node(self, level_1: str, level_2: str, level_3: str, level_4: str) -> str:
+        """确保父节点存在，不存在则创建."""
+        path_key = f"{level_1}/{level_2}/{level_3}/{level_4}".rstrip("/")
 
-        if parent_node:
+        for nid, node in self._tree.nodes.items():
+            node_path = f"{node.level_1}/{node.level_2}/{node.level_3}/{node.level_4}".rstrip("/")
+            if node_path == path_key:
+                return nid
+
+        parent_id = f"_parent_{level_1}_{level_2}_{level_3}".replace("/", "_").strip("_")
+        parent_node = IndicatorNode(
+            indicator_id=parent_id,
+            level_1=level_1,
+            level_2=level_2,
+            level_3=level_3,
+            level_4=level_4,
+            category=IndicatorCategory.REQUIRED,
+            enabled=True,
+        )
+        self._tree.add_node(parent_node)
+        return parent_id
+
+    def _add_child_relation(self, parent_id: str, child_id: str) -> None:
+        """添加父子关系."""
+        if parent_id not in self._tree.nodes:
+            return
+
+        parent_node = self._tree.nodes[parent_id]
+        child_node = self._tree.nodes.get(child_id)
+        if not child_node:
+            return
+
+        if child_id not in parent_node.children_ids:
             parent_node.children_ids.append(child_id)
-            self._tree.nodes[child_id].parent_id = parent_node.indicator_id
+        child_node.parent_id = parent_id
 
 
 class IndicatorTreeManager:
