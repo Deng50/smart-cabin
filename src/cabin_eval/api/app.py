@@ -1,6 +1,8 @@
 """FastAPI应用主模块."""
 from __future__ import annotations
 
+import re
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,26 @@ from pydantic import BaseModel
 from cabin_eval.config import Config, load_config
 from cabin_eval.services.generation_service import GenerationService
 from cabin_eval.services.optimization_service import OptimizationService
+
+ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
+MAX_FILE_SIZE = 50 * 1024 * 1024
+ARTIFACT_WHITELIST = {
+    "run_manifest.json", "cleaning_report.json", "model.json",
+    "segmentation_metrics.xlsx", "user_profiles.xlsx", "base_weights.xlsx",
+    "personalized_systems.xlsx", "weight_change_log.xlsx",
+    "cleaning_report.xlsx", "elbow.png", "cluster_sizes.png", "profile_heatmap.png",
+}
+
+
+def _secure_filename(filename: str) -> str:
+    """生成安全文件名，防止路径穿越."""
+    safe_name = re.sub(r"[^\w\-.]", "_", filename)
+    safe_name = safe_name[:100]
+    ext = Path(safe_name).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        ext = ".csv"
+    unique_id = uuid.uuid4().hex[:8]
+    return f"{Path(safe_name).stem}_{unique_id}{ext}"
 
 app = FastAPI(
     title="智慧座舱测评体系",
@@ -76,34 +98,50 @@ async def create_generation_run(
         raise HTTPException(status_code=500, detail="Service not initialized")
 
     try:
-        run_dir = _cfg.runs_dir / f"upload_{questionnaire.filename}"
+        run_id = uuid.uuid4().hex[:8]
+        run_dir = _cfg.runs_dir / f"run_{run_id}"
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        q_path = run_dir / questionnaire.filename
+        q_content = await questionnaire.read()
+        if len(q_content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File too large")
+        q_path = run_dir / _secure_filename(questionnaire.filename)
         with open(q_path, "wb") as f:
-            f.write(await questionnaire.read())
+            f.write(q_content)
 
-        ind_path = run_dir / indicators.filename
+        ind_content = await indicators.read()
+        if len(ind_content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File too large")
+        ind_path = run_dir / _secure_filename(indicators.filename)
         with open(ind_path, "wb") as f:
-            f.write(await indicators.read())
+            f.write(ind_content)
 
         exp_judgments_path = None
         if expert_judgments:
-            exp_judgments_path = run_dir / expert_judgments.filename
+            ej_content = await expert_judgments.read()
+            if len(ej_content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail="File too large")
+            exp_judgments_path = run_dir / _secure_filename(expert_judgments.filename)
             with open(exp_judgments_path, "wb") as f:
-                f.write(await expert_judgments.read())
+                f.write(ej_content)
 
         exp_authority_path = None
         if expert_authority:
-            exp_authority_path = run_dir / expert_authority.filename
+            ea_content = await expert_authority.read()
+            if len(ea_content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail="File too large")
+            exp_authority_path = run_dir / _secure_filename(expert_authority.filename)
             with open(exp_authority_path, "wb") as f:
-                f.write(await expert_authority.read())
+                f.write(ea_content)
 
         veh_scores_path = None
         if vehicle_scores:
-            veh_scores_path = run_dir / vehicle_scores.filename
+            vs_content = await vehicle_scores.read()
+            if len(vs_content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail="File too large")
+            veh_scores_path = run_dir / _secure_filename(vehicle_scores.filename)
             with open(veh_scores_path, "wb") as f:
-                f.write(await vehicle_scores.read())
+                f.write(vs_content)
 
         result = _gen_service.run(
             questionnaire_path=q_path,
@@ -137,15 +175,24 @@ async def get_run_status(run_id: str):
 
 @app.get("/api/v1/runs/{run_id}/artifacts/{name}")
 async def download_artifact(run_id: str, name: str):
-    """下载运行产物."""
+    """下载运行产物 (白名单保护)."""
     if run_id not in _runs:
         raise HTTPException(status_code=404, detail="Run not found")
+
+    safe_name = _secure_filename(name)
+    if safe_name not in ARTIFACT_WHITELIST and name not in ARTIFACT_WHITELIST:
+        raise HTTPException(status_code=403, detail="Artifact not allowed")
 
     run_dir = Path(_runs[run_id]["run_dir"])
     artifact_path = run_dir / name
 
-    if not artifact_path.exists():
+    if not artifact_path.exists() or not artifact_path.is_file():
         raise HTTPException(status_code=404, detail="Artifact not found")
+
+    try:
+        artifact_path.relative_to(_cfg.runs_dir)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Invalid path")
 
     return FileResponse(artifact_path)
 
@@ -163,12 +210,16 @@ async def create_optimization_run(
         raise HTTPException(status_code=404, detail="Base run not found")
 
     try:
-        run_dir = _cfg.runs_dir / f"optimization_{optimization_samples.filename}"
+        opt_run_id = uuid.uuid4().hex[:8]
+        run_dir = _cfg.runs_dir / f"optimization_{opt_run_id}"
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        samples_path = run_dir / optimization_samples.filename
+        samples_content = await optimization_samples.read()
+        if len(samples_content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File too large")
+        samples_path = run_dir / _secure_filename(optimization_samples.filename)
         with open(samples_path, "wb") as f:
-            f.write(await optimization_samples.read())
+            f.write(samples_content)
 
         result = _opt_service.run(
             base_run_id=run_id,
