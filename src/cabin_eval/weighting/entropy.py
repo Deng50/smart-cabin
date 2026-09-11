@@ -12,8 +12,11 @@ class EntropyWeightCalculator:
         pass
 
     def calculate(self, df: pd.DataFrame, indicator_cols: list[str]) -> dict[str, float]:
-        """计算熵权."""
+        """计算熵权，常数列权重为0."""
         X = df[indicator_cols].values
+        n_samples, n_cols = X.shape
+
+        constant_mask = (X.min(axis=0) == X.max(axis=0))
 
         X_normalized = self._min_max_normalize(X)
 
@@ -21,11 +24,20 @@ class EntropyWeightCalculator:
 
         entropy = self._calculate_entropy(p)
 
+        entropy[constant_mask] = 1.0
+
         diversity_coefficient = 1 - entropy
 
         weights = self._normalize_weights(diversity_coefficient)
 
-        return {col: float(weights[i]) for i, col in enumerate(indicator_cols)}
+        result = {}
+        for i, col in enumerate(indicator_cols):
+            if constant_mask[i]:
+                result[col] = 0.0
+            else:
+                result[col] = float(weights[i])
+
+        return result
 
     def _min_max_normalize(self, X: np.ndarray) -> np.ndarray:
         """Min-Max标准化."""
