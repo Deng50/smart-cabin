@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧座舱测评体系</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>智慧座舱测评体系自趋优模型</h1>
+            <p class="subtitle">Smart Cabin Evaluation System</p>
+        </header>
+
+        <main>
+            <section class="card" id="generation-section">
+                <h2>生成测评体系</h2>
+                <form id="generation-form">
+                    <div class="form-group">
+                        <label>问卷数据 (Excel/CSV)</label>
+                        <input type="file" name="questionnaire" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div class="form-group">
+                        <label>指标体系 (Excel/CSV)</label>
+                        <input type="file" name="indicators" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div class="form-group">
+                        <label>专家判断矩阵 (可选)</label>
+                        <input type="file" name="expert_judgments" accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div class="form-group">
+                        <label>专家权威度 (可选)</label>
+                        <input type="file" name="expert_authority" accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div class="form-group">
+                        <label>车型历史数据 (可选)</label>
+                        <input type="file" name="vehicle_scores" accept=".xlsx,.xls,.csv">
+                    </div>
+                    <button type="submit">提交生成</button>
+                </form>
+                <div id="generation-result" class="result-area"></div>
+            </section>
+
+            <section class="card" id="optimization-section">
+                <h2>优化权重</h2>
+                <form id="optimization-form">
+                    <div class="form-group">
+                        <label>基础运行ID</label>
+                        <input type="text" name="base_run_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label>优化样本数据 (Excel/CSV)</label>
+                        <input type="file" name="optimization_samples" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <button type="submit">提交优化</button>
+                </form>
+                <div id="optimization-result" class="result-area"></div>
+            </section>
+
+            <section class="card" id="results-section">
+                <h2>运行结果</h2>
+                <div id="runs-list">暂无运行记录</div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

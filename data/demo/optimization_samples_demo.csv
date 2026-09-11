@@ -1,0 +1,9 @@
+sample_id,indicator_score_IND001,indicator_score_IND002,indicator_score_IND003,indicator_score_IND004,indicator_score_IND005,indicator_score_IND006,indicator_score_IND007,indicator_score_IND008,indicator_score_IND009,indicator_score_IND010,indicator_score_IND011,indicator_score_IND012,indicator_score_IND013,indicator_score_IND014,indicator_score_IND015,indicator_score_IND016,target_score,split
+V001,85,80,90,88,75,60,82,70,78,72,85,68,75,50,88,65,82.5,train
+V002,78,82,85,90,80,65,78,72,82,75,80,70,70,55,82,60,79.3,train
+V003,90,85,95,92,85,75,88,78,85,80,90,75,80,60,92,72,86.5,train
+V004,72,75,80,78,70,55,75,65,70,65,75,62,68,45,78,55,72.1,train
+V005,88,82,92,90,78,68,85,75,80,78,88,72,78,58,90,68,82.8,validation
+V006,80,78,88,85,72,62,80,68,76,70,82,66,72,52,84,62,78.4,validation
+V007,92,88,95,94,88,78,90,80,88,82,92,78,85,65,94,75,88.2,test
+V008,75,72,82,80,68,58,76,66,72,68,78,64,70,48,80,58,74.6,test

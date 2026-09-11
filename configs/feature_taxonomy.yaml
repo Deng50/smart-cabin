@@ -1,0 +1,34 @@
+# 座舱功能分类
+# 一级分类
+level_1:
+  - id: safety
+    name: 安全座舱
+  - id: comfort
+    name: 舒适座舱
+  - id: intelligent
+    name: 智能座舱
+  - id: entertainment
+    name: 娱乐座舱
+
+# 二级分类示例
+level_2:
+  safety:
+    - id: active_safety
+      name: 主动安全
+    - id: passive_safety
+      name: 被动安全
+  comfort:
+    - id: seat_comfort
+      name: 座椅舒适
+    - id: climate
+      name: 温控舒适
+  intelligent:
+    - id: voice
+      name: 语音交互
+    - id: navigation
+      name: 导航系统
+  entertainment:
+    - id: audio
+      name: 音响系统
+    - id: display
+      name: 显示系统

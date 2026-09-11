@@ -1,0 +1,9 @@
+# 环境因素影响规则
+# 默认关闭，待客户确认后启用
+enabled: false
+
+rules: []
+  # - context: {noise_level: high}
+  #   indicator_id: voice_recognition_noise
+  #   action: multiply_weight
+  #   value: 1.10
