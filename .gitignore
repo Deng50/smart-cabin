@@ -13,3 +13,5 @@ venv/
 data/runs/
 *.parquet
 .DS_Store
+design_one.md
+工程完整度检查报告.md
