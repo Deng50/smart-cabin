@@ -37,7 +37,9 @@ class EntropyWeightCalculator:
 
     def _calculate_probability(self, X_normalized: np.ndarray) -> np.ndarray:
         """计算概率矩阵."""
-        p = X_normalized / X_normalized.sum(axis=0)
+        col_sums = X_normalized.sum(axis=0)
+        col_sums[col_sums == 0] = 1.0
+        p = X_normalized / col_sums
         p[p == 0] = 1e-10
         return p
 

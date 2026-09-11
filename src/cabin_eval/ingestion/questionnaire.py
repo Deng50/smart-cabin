@@ -77,33 +77,38 @@ class QuestionnaireIngester:
                 removed_reasons["duplicate_sample_id"] = dup_count
 
         total_rows = len(df)
-        unknown_counts = df[function_cols].apply(lambda x: x.isin(unknown_values).sum(axis=1))
+
+        unknown_mask_df = df[function_cols].isin(unknown_values)
+        unknown_counts = unknown_mask_df.sum(axis=1)
         unknown_ratios = unknown_counts / len(function_cols)
         excessive_unknown = unknown_ratios > max_unknown_ratio
         excess_count = excessive_unknown.sum()
         if excess_count > 0:
             df = df[~excessive_unknown]
-            removed_reasons["excessive_unknown"] = excess_count
+            removed_reasons["excessive_unknown"] = int(excess_count)
 
         for col in function_cols:
             if col not in df.columns:
                 continue
-            unknown_mask = df[col].isin(unknown_values)
-            unknown_count = unknown_mask.sum()
+            col_unknown_mask = df[col].isin(unknown_values)
+            unknown_count = col_unknown_mask.sum()
 
             if unknown_count > 0:
-                median_val = df.loc[~unknown_mask, col].median()
-                if pd.isna(median_val):
+                valid_vals = df.loc[~col_unknown_mask, col]
+                valid_numeric = pd.to_numeric(valid_vals, errors="coerce").dropna()
+                if len(valid_numeric) > 0:
+                    median_val = valid_numeric.median()
+                else:
                     median_val = (self._questionnaire_cfg.get("rating_min", 1) +
                                   self._questionnaire_cfg.get("rating_max", 5)) / 2
 
-                for idx in df[unknown_mask].index:
+                for idx in df[col_unknown_mask].index:
                     imputation_records.append({
                         "sample_id": str(df.loc[idx, "sample_id"]),
                         "column": col,
                         "imputed_value": str(median_val),
                     })
-                df.loc[unknown_mask, col] = median_val
+                df.loc[col_unknown_mask, col] = median_val
 
         valid_rows = len(df)
         removed_rows = total_rows - valid_rows

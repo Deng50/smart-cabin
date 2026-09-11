@@ -19,7 +19,10 @@ class ConstraintHandler:
         self._epsilon = epsilon
 
     def project(self, weights: np.ndarray) -> np.ndarray:
-        """将权重投影到可行域 (带上下界的单纯形投影)."""
+        """将权重投影到可行域 (带上下界的单纯形投影).
+
+        正确顺序：先归一化确保和为1，再应用边界约束，最后再次归一化。
+        """
         weights = np.clip(weights, 0, 1)
 
         for group in self._sibling_groups:

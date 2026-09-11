@@ -30,7 +30,13 @@ class OptimizationService:
         run_dir = self._cfg.runs_dir / f"optimization_{run_id}"
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        samples_df = pd.read_excel(optimization_samples_path)
+        samples_path = Path(optimization_samples_path)
+        if samples_path.suffix == ".csv":
+            samples_df = pd.read_csv(samples_path)
+        elif samples_path.suffix in (".xlsx", ".xls"):
+            samples_df = pd.read_excel(samples_path)
+        else:
+            raise ValueError(f"Unsupported file format: {samples_path.suffix}")
 
         if "sample_id" not in samples_df.columns or "target_score" not in samples_df.columns:
             raise ValueError("Missing required columns in optimization samples")

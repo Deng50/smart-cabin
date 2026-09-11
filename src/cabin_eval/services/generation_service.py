@@ -11,7 +11,7 @@ import pandas as pd
 
 from cabin_eval.config import Config
 from cabin_eval.domain.evaluation_model import EvaluationModel
-from cabin_eval.domain.indicator_tree import IndicatorTreeBuilder
+from cabin_eval.domain.indicator_tree import IndicatorTreeBuilder, IndicatorTreeManager
 from cabin_eval.domain.user_profile import UserProfileGenerator
 from cabin_eval.ingestion.experts import ExpertIngester
 from cabin_eval.ingestion.indicators import IndicatorIngester
